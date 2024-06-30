@@ -19,6 +19,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
+          lscpu
           sudo apt-get update
           sudo apt-get install -y fio git build-essential flex bison libssl-dev libelf-dev cmake protobuf-compiler
 
