@@ -89,25 +89,25 @@ jobs:
       #     make defconfig
       #     time make -j32
 
-      # - name: Install fio
-      #   run: |
-      #     sudo apt-get install -y fio
+      - name: Install fio
+        run: |
+          sudo apt-get install -y fio
 
-      # - name: Measure random read IO disk performance
-      #   run: |
-      #     fio --name=random-read --ioengine=posixaio --rw=randread --bs=4k --numjobs=1 --size=4g --time_based --runtime=60 --ramp_time=10 --group_reporting
+      - name: Measure random read IO disk performance
+        run: |
+          fio --name=random-read --ioengine=posixaio --rw=randread --bs=4k --numjobs=1 --size=4g --time_based --runtime=60 --ramp_time=10 --group_reporting
 
-      # - name: Measure random write IO disk performance
-      #   run: |
-      #     fio --name=random-write --ioengine=posixaio --rw=randwrite --bs=4k --numjobs=1 --size=4g --time_based --runtime=60 --ramp_time=10 --group_reporting
+      - name: Measure random write IO disk performance
+        run: |
+          fio --name=random-write --ioengine=posixaio --rw=randwrite --bs=4k --numjobs=1 --size=4g --time_based --runtime=60 --ramp_time=10 --group_reporting
 
-      # - name: Measure sequential read IO disk performance
-      #   run: |
-      #     fio --name=sequential-read --ioengine=posixaio --rw=read --bs=1m --numjobs=1 --size=4g --time_based --runtime=60 --ramp_time=10 --group_reporting
+      - name: Measure sequential read IO disk performance
+        run: |
+          fio --name=sequential-read --ioengine=posixaio --rw=read --bs=1m --numjobs=1 --size=4g --time_based --runtime=60 --ramp_time=10 --group_reporting
 
-      # - name: Measure sequential write IO disk performance
-      #   run: |
-      #     fio --name=sequential-write --ioengine=posixaio --rw=write --bs=1m --numjobs=1 --size=4g --time_based --runtime=60 --ramp_time=10 --group_reporting
+      - name: Measure sequential write IO disk performance
+        run: |
+          fio --name=sequential-write --ioengine=posixaio --rw=write --bs=1m --numjobs=1 --size=4g --time_based --runtime=60 --ramp_time=10 --group_reporting
 
       - uses: actions/checkout@v4
 
