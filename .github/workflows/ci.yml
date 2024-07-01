@@ -17,6 +17,8 @@ jobs:
         runner: [blacksmith-staging-4vcpu-ubuntu-2204, blacksmith-staging, nscloud-ubuntu-22.04-amd64-4x16]
     runs-on: ${{ matrix.runner }}
     steps:
+      - name: Run tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Install dependencies
         run: |
           lscpu
