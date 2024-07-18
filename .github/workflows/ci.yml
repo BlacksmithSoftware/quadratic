@@ -12,18 +12,106 @@ on:
 
 jobs:
   test_rust:
-    runs-on: blacksmith-8vcpu-ubuntu-2204
+    strategy:
+      matrix:
+        runner: [blacksmith-staging-4vcpu-ubuntu-2204, blacksmith-staging, nscloud-ubuntu-22.04-amd64-4x16]
+    runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: useblacksmith/setup-node@v5
-        with:
-          node-version: 18
+      - name: Run tmate session
+        uses: mxschmitt/action-tmate@v3
+      - name: Install dependencies
+        run: |
+          lscpu
+          sudo apt-get update
+          sudo apt-get install -y fio git build-essential flex bison libssl-dev libelf-dev cmake protobuf-compiler
+
+      # - name: Clone and test Substrate
+      #   run: |
+      #     git clone https://github.com/paritytech/substrate.git
+      #     cd substrate
+      #     rustup target add wasm32-unknown-unknown
+      #     time cargo test
+      #     cd ..
 
       - name: Set up Rust
         uses: moonrepo/setup-rust@v1
         with:
           components: clippy, llvm-tools-preview
           cache: false
+
+      # - name: Install Rust 1.78
+      #   run: |
+      #     rustup install 1.78
+      #     rustup default 1.78
+      #     rustup component add rustfmt --toolchain 1.78
+
+      # - name: Clone and test rust-analyzer
+      #   run: |
+      #     git clone https://github.com/rust-analyzer/rust-analyzer.git
+      #     cd rust-analyzer
+      #     rustup component add rust-src --toolchain 1.78
+      #     time cargo test
+      #     cd ..
+
+      # - name: Clone and test Rocket
+      #   run: |
+      #     git clone https://github.com/SergioBenitez/Rocket.git
+      #     cd Rocket
+      #     time cargo test
+      #     cd ..
+
+      # - name: Clone and test Actix
+      #   run: |
+      #     git clone https://github.com/actix/actix-web.git
+      #     cd actix-web
+      #     time cargo test
+      #     cd ..
+
+      # - name: Clone and build Deno
+      #   run: |
+      #     git clone https://github.com/denoland/deno.git
+      #     cd deno
+      #     time cargo build --release
+      #     cd ..
+
+      # - name: Clone and build Redis
+      #   run: |
+      #     git clone https://github.com/redis/redis.git
+      #     cd redis
+      #     time make -j32
+      #     cd ..
+
+      # - name: Clone Linux repository
+      #   run: |
+      #     git clone --depth=1 https://github.com/torvalds/linux.git
+
+      # - name: Build Linux kernel
+      #   run: |
+      #     cd linux
+      #     make defconfig
+      #     time make -j32
+
+      - name: Install fio
+        run: |
+          sudo apt-get install -y fio
+
+      - name: Measure random read IO disk performance
+        run: |
+          fio --name=random-read --ioengine=posixaio --rw=randread --bs=4k --numjobs=1 --size=4g --time_based --runtime=60 --ramp_time=10 --group_reporting
+
+      - name: Measure random write IO disk performance
+        run: |
+          fio --name=random-write --ioengine=posixaio --rw=randwrite --bs=4k --numjobs=1 --size=4g --time_based --runtime=60 --ramp_time=10 --group_reporting
+
+      - name: Measure sequential read IO disk performance
+        run: |
+          fio --name=sequential-read --ioengine=posixaio --rw=read --bs=1m --numjobs=1 --size=4g --time_based --runtime=60 --ramp_time=10 --group_reporting
+
+      - name: Measure sequential write IO disk performance
+        run: |
+          fio --name=sequential-write --ioengine=posixaio --rw=write --bs=1m --numjobs=1 --size=4g --time_based --runtime=60 --ramp_time=10 --group_reporting
+
+      - uses: actions/checkout@v4
 
       - name: Install grcov
         run: if ! which grcov; then cargo install grcov; fi
@@ -32,7 +120,6 @@ jobs:
         run: if ! which llvm-tools-preview; then rustup component add llvm-tools-preview; fi
 
       - name: Install pkg-config
-        if: github.runner.isHosted == true
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config
@@ -44,7 +131,7 @@ jobs:
           RUSTC_BOOTSTRAP: 1
         run: |
           cd quadratic-core
-          cargo test
+          time cargo test
 
       - name: Generate coverage for quadratic-core
         env:
@@ -62,11 +149,6 @@ jobs:
             --ignore "./docker/*" \
             -o lcov.info
 
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
       - name: Test quadratic-multiplayer
         env:
           LLVM_PROFILE_FILE: grcov-%p-%m.profraw
@@ -74,7 +156,7 @@ jobs:
           RUSTC_BOOTSTRAP: 1
         run: |
           cd quadratic-multiplayer
-          npm run docker:test
+          time npm run docker:test
 
       - name: Generate coverage quadratic-multiplayer
         env:
@@ -93,19 +175,16 @@ jobs:
             --ignore "./../docker/*" \
             -o lcov.info
 
-      - name: Upload coverage reports to Codecov quadratic-multiplayer
-        uses: codecov/codecov-action@v3
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
   test_unit:
     runs-on: blacksmith-8vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
-      - uses: useblacksmith/setup-node@v5
+
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - uses: useblacksmith/setup-python@v6
+
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11.3'
 
@@ -137,10 +216,10 @@ jobs:
     runs-on: blacksmith-8vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
-      - uses: useblacksmith/setup-node@v5
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - uses: useblacksmith/setup-python@v6
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11.3"
           cache: "pip"
@@ -154,7 +233,7 @@ jobs:
     runs-on: blacksmith-8vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
-      - uses: useblacksmith/setup-node@v5
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
 
@@ -183,7 +262,7 @@ jobs:
     runs-on: blacksmith-8vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
-      - uses: useblacksmith/setup-node@v5
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
       - name: Set up Rust
